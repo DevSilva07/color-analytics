@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <div class="brand">Color<span>Analytics</span></div>
+  <div class="tag">Análise estatística</div>
+</header>
+
+<main>
+  <section class="hero">
+    <div>
+      <p class="eyebrow">PAINEL DE ANÁLISE</p>
+      <h1>Analise resultados históricos de forma simples.</h1>
+      <p class="subtitle">
+        Registre resultados, acompanhe frequências e visualize os dados.
+        O sistema não garante nem afirma prever o próximo resultado.
+      </p>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <h2>Total</h2>
+      <strong id="total">{{ stats.total }}</strong>
+      <p>resultados registrados</p>
+    </article>
+    <article class="card red-card">
+      <h2>Vermelho</h2>
+      <strong id="red">{{ stats.red_pct }}%</strong>
+      <p><span id="redCount">{{ stats.red }}</span> ocorrências</p>
+    </article>
+    <article class="card blue-card">
+      <h2>Azul</h2>
+      <strong id="blue">{{ stats.blue_pct }}%</strong>
+      <p><span id="blueCount">{{ stats.blue }}</span> ocorrências</p>
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Registrar resultado</h2>
+        <p>Use os dados para fins de análise estatística.</p>
+      </div>
+      <button class="secondary" onclick="resetData()">Limpar</button>
+    </div>
+
+    <div class="buttons">
+      <button class="red" onclick="addResult('red')">Vermelho</button>
+      <button class="blue" onclick="addResult('blue')">Azul</button>
+    </div>
+
+    <div class="chart">
+      <div class="bar-label">
+        <span>Vermelho</span><span id="redBarText">{{ stats.red_pct }}%</span>
+      </div>
+      <div class="bar"><div id="redBar" class="fill red-fill" style="width:{{ stats.red_pct }}%"></div></div>
+
+      <div class="bar-label">
+        <span>Azul</span><span id="blueBarText">{{ stats.blue_pct }}%</span>
+      </div>
+      <div class="bar"><div id="blueBar" class="fill blue-fill" style="width:{{ stats.blue_pct }}%"></div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Histórico</h2>
+    <div id="history" class="history">
+      {% for item in history %}
+        <span class="dot {{ item }}"></span>
+      {% endfor %}
+    </div>
+    <p class="notice">
+      Estatísticas de uma sequência passada não determinam o próximo resultado.
+      Este projeto é uma demonstração educacional de análise de dados.
+    </p>
+  </section>
+</main>
+
+<script>
+async function addResult(result) {
+  const response = await fetch("/api/results", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({result})
+  });
+  const data = await response.json();
+  if (!response.ok) return alert(data.error || "Erro");
+  render(data);
+}
+
+async function resetData() {
+  await fetch("/api/reset", {method: "POST"});
+  const response = await fetch("/api/stats");
+  const data = await response.json();
+  render({stats: data, history: []});
+}
+
+function render(data) {
+  const s = data.stats;
+  document.querySelector("#total").textContent = s.total;
+  document.querySelector("#red").textContent = s.red_pct + "%";
+  document.querySelector("#blue").textContent = s.blue_pct + "%";
+  document.querySelector("#redCount").textContent = s.red;
+  document.querySelector("#blueCount").textContent = s.blue;
+  document.querySelector("#redBar").style.width = s.red_pct + "%";
+  document.querySelector("#blueBar").style.width = s.blue_pct + "%";
+  document.querySelector("#redBarText").textContent = s.red_pct + "%";
+  document.querySelector("#blueBarText").textContent = s.blue_pct + "%";
+
+  if (data.history) {
+    document.querySelector("#history").innerHTML =
+      data.history.map(x => `<span class="dot ${x}"></span>`).join("");
+  }
+}
+</script>
+</body>
+</html>
